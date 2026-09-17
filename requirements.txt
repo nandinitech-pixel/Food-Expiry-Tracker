@@ -1,0 +1,9 @@
+streamlit
+mysql-connector-python
+werkzeug
+pandas
+python-dotenv
+opencv-contrib-python
+pillow
+joblib
+scikit-learn
