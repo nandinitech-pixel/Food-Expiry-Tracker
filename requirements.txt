@@ -1,9 +1,6 @@
 streamlit
-mysql-connector-python
-werkzeug
 pandas
+supabase
 python-dotenv
-opencv-contrib-python
-pillow
-joblib
-scikit-learn
+opencv-contrib-python-headless
+numpy
