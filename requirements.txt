@@ -4,3 +4,4 @@ supabase
 python-dotenv
 opencv-contrib-python-headless
 numpy
+Werkzeug
