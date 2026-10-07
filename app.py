@@ -350,16 +350,23 @@ with add_col2:
         value=today
     )
 
-    disposal_action = st.selectbox(
-        "♻️ What should happen to this item?",
-        ["Recycle", "Return", "Discard"],
-        format_func=lambda x: {
-            "Recycle": "♻️ Recycle",
-            "Return": "↩️ Return",
-            "Discard": "🗑️ Discard"
-        }[x]
-    )
 
+# ============================================================
+# DISPOSAL / RETURN ACTION
+# ============================================================
+
+st.markdown("### ♻️ Item End-of-Life Action")
+
+disposal_action = st.selectbox(
+    "What should happen to this item?",
+    ["Recycle", "Return", "Discard"],
+    format_func=lambda x: {
+        "Recycle": "♻️ Recycle",
+        "Return": "↩️ Return",
+        "Discard": "🗑️ Discard"
+    }[x],
+    help="This action can be changed later from the final Action Management section."
+)
 
 if st.button(
     "➕ Add Food Item",
@@ -919,3 +926,87 @@ for item in filtered_items:
                     st.error(
                         f"Delete error: {error}"
                     )
+
+
+
+# ============================================================
+# FINAL FEATURE: ♻️ MANAGE END-OF-LIFE ACTIONS
+# ============================================================
+
+st.divider()
+st.header("♻️ Manage Recycle / Return / Discard Actions")
+st.write("Manage what should happen to your food items. You can change and save the action at any time.")
+
+if not food_items:
+    st.info("📭 Add food items first to manage their actions.")
+else:
+    action_filter = st.selectbox(
+        "Filter items by action",
+        ["All", "Recycle", "Return", "Discard"],
+        format_func=lambda x: {
+            "All": "🔎 All",
+            "Recycle": "♻️ Recycle",
+            "Return": "↩️ Return",
+            "Discard": "🗑️ Discard"
+        }[x],
+        key="final_action_filter"
+    )
+
+    action_items = []
+    for item in food_items:
+        current_action = item.get("disposal_action") or "Discard"
+        if current_action not in ["Recycle", "Return", "Discard"]:
+            current_action = "Discard"
+        if action_filter == "All" or current_action == action_filter:
+            action_items.append((item, current_action))
+
+    if not action_items:
+        st.info("📭 No items match the selected action.")
+    else:
+        for item, current_action in action_items:
+            item_id = item["id"]
+            expiry = as_date(item["expiry_date"])
+            status, label, message = get_status(expiry, today)
+
+            with st.container(border=True):
+                info_col, action_col, save_col = st.columns([4, 2, 1])
+
+                with info_col:
+                    st.write(f"**🍎 {item['food_name']}**")
+                    st.caption(f"📦 Quantity: {item['quantity']}  |  📅 Expiry: {expiry}  |  {label}")
+
+                with action_col:
+                    action_options = ["Recycle", "Return", "Discard"]
+                    selected_action = st.selectbox(
+                        "Action", action_options,
+                        index=action_options.index(current_action),
+                        format_func=lambda x: {
+                            "Recycle": "♻️ Recycle",
+                            "Return": "↩️ Return",
+                            "Discard": "🗑️ Discard"
+                        }[x],
+                        key=f"final_action_{item_id}"
+                    )
+
+                with save_col:
+                    st.write("")
+                    st.write("")
+                    if st.button("💾 Save", key=f"save_final_action_{item_id}", use_container_width=True):
+                        try:
+                            supabase = get_connection()
+                            response = (
+                                supabase.table("food_items")
+                                .update({"disposal_action": selected_action})
+                                .eq("id", item_id)
+                                .eq("user_id", user_id)
+                                .execute()
+                            )
+                            if response.data:
+                                st.success("✅ Saved")
+                                st.rerun()
+                            else:
+                                st.error("❌ Action could not be saved.")
+                        except Exception as error:
+                            st.error(f"Database error: {error}")
+
+                st.caption(f"Current action: **{get_action_display(current_action)}** | {message}")
